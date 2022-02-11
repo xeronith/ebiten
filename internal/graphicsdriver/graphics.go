@@ -45,13 +45,13 @@ type Uniform struct {
 }
 
 type Graphics interface {
-	Begin()
-	End(present bool)
+	Initialize() error
+	Begin() error
+	End(present bool) error
 	SetTransparent(transparent bool)
-	SetVertices(vertices []float32, indices []uint16)
+	SetVertices(vertices []float32, indices []uint16) error
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
-	Initialize() error
 	SetVsyncEnabled(enabled bool)
 	SetFullscreen(fullscreen bool)
 	FramebufferYDirection() YDirection
@@ -59,6 +59,7 @@ type Graphics interface {
 	NeedsRestoring() bool
 	NeedsClearingScreen() bool
 	IsGL() bool
+	IsDirectX() bool
 	HasHighPrecisionFloat() bool
 	MaxImageSize() int
 
@@ -81,7 +82,7 @@ type Image interface {
 	Dispose()
 	IsInvalidated() bool
 	ReadPixels(buf []byte) error
-	ReplacePixels(args []*ReplacePixelsArgs)
+	ReplacePixels(args []*ReplacePixelsArgs) error
 }
 
 type ImageID int

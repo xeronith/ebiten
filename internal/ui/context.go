@@ -56,16 +56,25 @@ func newContextImpl(game Game) *contextImpl {
 	}
 }
 
+type updater struct {
+	*contextImpl
+}
+
+func (u updater) Update(updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection) error {
+	return u.contextImpl.updateFrameImpl(updateCount, outsideWidth, outsideHeight, deviceScaleFactor, needsClearingScreen, framebufferYDirection)
+}
+
 func (c *contextImpl) updateFrame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
-	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
-	return c.updateFrameImpl(clock.Update(theGlobalState.maxTPS()), outsideWidth, outsideHeight, deviceScaleFactor)
+	return graphicscommand.Update(updater{c}, clock.Update(theGlobalState.maxTPS()), outsideWidth, outsideHeight, deviceScaleFactor)
 }
 
 func (c *contextImpl) forceUpdateFrame(outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
-	return c.updateFrameImpl(1, outsideWidth, outsideHeight, deviceScaleFactor)
+	return graphicscommand.ForceUpdate(updater{c}, outsideWidth, outsideHeight, deviceScaleFactor)
 }
 
-func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection) error {
+	// TODO: If updateCount is 0 and vsync is disabled, swapping buffers can be skipped.
+
 	if err := theGlobalState.error(); err != nil {
 		return err
 	}
@@ -111,7 +120,7 @@ func (c *contextImpl) updateFrameImpl(updateCount int, outsideWidth, outsideHeig
 
 	// Draw the game.
 	screenScale, offsetX, offsetY := c.screenScaleAndOffsets(deviceScaleFactor)
-	if err := graphicscommand.Draw(c.game, screenScale, offsetX, offsetY, theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled()); err != nil {
+	if err := c.game.Draw(screenScale, offsetX, offsetY, needsClearingScreen, framebufferYDirection, theGlobalState.isScreenClearedEveryFrame(), theGlobalState.isScreenFilterEnabled()); err != nil {
 		return err
 	}
 

@@ -18,12 +18,24 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
-type Drawer interface {
-	Draw(screenScale float64, offsetX, offsetY float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection, screenClearedEveryFrame, filterEnabled bool) error
+type Updater interface {
+	Update(updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64, needsClearingScreen bool, framebufferYDirection graphicsdriver.YDirection) error
 }
 
-func Draw(drawer Drawer, screenScale float64, offsetX, offsetY float64, screenClearedEveryFrame, filterEnabled bool) error {
-	return drawer.Draw(screenScale, offsetX, offsetY, graphicsDriver().NeedsClearingScreen(), graphicsDriver().FramebufferYDirection(), screenClearedEveryFrame, filterEnabled)
+func Update(updater Updater, updateCount int, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+	return updater.Update(updateCount, outsideWidth, outsideHeight, deviceScaleFactor, graphicsDriver().NeedsClearingScreen(), graphicsDriver().FramebufferYDirection())
+}
+
+func ForceUpdate(updater Updater, outsideWidth, outsideHeight float64, deviceScaleFactor float64) error {
+	if err := updater.Update(1, outsideWidth, outsideHeight, deviceScaleFactor, graphicsDriver().NeedsClearingScreen(), graphicsDriver().FramebufferYDirection()); err != nil {
+		return err
+	}
+	if graphicsDriver().IsDirectX() {
+		if err := updater.Update(0, outsideWidth, outsideHeight, deviceScaleFactor, graphicsDriver().NeedsClearingScreen(), graphicsDriver().FramebufferYDirection()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // TODO: Reduce these 'getter' global functions if possible.
